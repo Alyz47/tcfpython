@@ -112,8 +112,8 @@ class Address(TimeStampedModel):
     city = models.CharField(max_length=100, blank=False, null=False)
     street_address = models.CharField(max_length=250, blank=False, null=False)
     postal_code = models.CharField(max_length=20, blank=True, null=True)
-    has_card = models.BooleanField(default=False)
-    primary = models.BooleanField(default=False)
+    # has_card = models.BooleanField(default=False)  # Move this
+    # primary = models.BooleanField(default=False)
 
     class Meta:
         ordering = ("-created",)

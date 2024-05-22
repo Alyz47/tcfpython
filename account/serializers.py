@@ -20,7 +20,7 @@ class LoginSerializer(serializers.Serializer):
         password = validated_data.get("password")
 
         user = None
-        
+
         user = authenticate(email=email, password=password)
 
         if not user:
@@ -88,12 +88,37 @@ class UserSerializer(serializers.ModelSerializer):
 
 class SellerSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer()
+
     class Meta:
         model = User
         fields = ['id', 'email', 'username', 'profile']
 
 
-class AddressSerializer(serializers.ModelSerializer):
+class ReadAddressSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(source="user.get_username", read_only=True)
+
     class Meta:
         model = Address
         fields = "__all__"
+
+
+class WriteAddressSerializer(serializers.ModelSerializer):
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
+    class Meta:
+        model = Address
+        fields = ['user', 'country', 'city', 'street_address', 'postal_code']
+
+    def create(self, validated_data):
+        address = Address.objects.create(**validated_data)
+        return address
+
+    def update(self, instance, validated_data):
+        if Address.objects.filter(user=instance.user).exists():
+            print("User already has an address!")
+            instance.country = ''
+            instance.city = ''
+            instance.street_address = ''
+            instance.postal_code = ''
+            print("Current address data cleared!")
+        return super().update(instance, validated_data)

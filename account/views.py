@@ -10,19 +10,20 @@ from django.db.utils import IntegrityError
 from dj_rest_auth.views import LoginView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import status, generics, permissions
+from rest_framework import status, generics, permissions, viewsets
 from rest_framework.authtoken.models import Token
 from django.middleware.csrf import get_token
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
+from .permissions import IsUserAddressOwner
 from .models import Profile, Address
-from .serializers import EditProfileSerializer, AddressSerializer
-
 from .serializers import (UserSerializer,
                           LoginSerializer,
-                          ProfileSerializer,)
+                          ProfileSerializer,
+                          ReadAddressSerializer,
+                          WriteAddressSerializer,
+                          EditProfileSerializer)
 from listing.serializers import ReadListingSerializer
-from .models import Profile
 from listing.models import Listing
 
 
@@ -205,50 +206,68 @@ def get_user_listings(request, profile_pk=None):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
-# Address
-class AddressListCreateAPIView(generics.ListCreateAPIView):
-    serializer_class = AddressSerializer
-    # permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        # If user_id is provided in the URL, filter addresses by that user ID
-        user_id = self.kwargs.get('user_id')
-        if user_id:
-            return Address.objects.filter(user_id=user_id)
-        # Otherwise, default to the authenticated user's addresses
-        user = self.request.user
-        return Address.objects.filter(user=user)
-
-    def perform_create(self, serializer):
-        # If user_id is provided in the URL, use that user ID to save the address
-        user_id = self.kwargs.get('user_id')
-        if user_id:
-            serializer.save(user_id=user_id)
-        else:
-            serializer.save(user=self.request.user)
-
-class AddressRetrieveUpdateAPIView(generics.RetrieveUpdateAPIView):
-    serializer_class = AddressSerializer
-    # permission_classes = [IsAuthenticated]
-    queryset = Address.objects.all()  # Set queryset to retrieve all addresses
-    
-class UserAddressRetrieveAPIView(generics.ListAPIView):
-    serializer_class = AddressSerializer
-    permission_classes = [IsAuthenticated]
+class AddressViewSet(viewsets.ModelViewSet):
+    """
+    List and Retrieve user addresses
+    """
     queryset = Address.objects.all()
-    lookup_field = 'user_id'  # Specify the lookup field
+    permission_classes = (IsUserAddressOwner,)
 
     def get_queryset(self):
-        user_id = self.kwargs.get('user_id')
-        return Address.objects.filter(user_id=user_id)
+        res = super().get_queryset()
+        user = self.request.user
+        return res.filter(user=user)
 
-    def put(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+    def get_serializer_class(self):
+        if self.action in ['list', 'retrieve']:
+            return ReadAddressSerializer
+        return WriteAddressSerializer
 
-    def patch(self, request, *args, **kwargs):
-        return self.put(request, *args, **kwargs)
+
+
+# class AddressListCreateAPIView(generics.ListCreateAPIView):
+#     serializer_class = AddressSerializer
+#     # permission_classes = [IsAuthenticated]
+
+#     def get_queryset(self):
+#         # If user_id is provided in the URL, filter addresses by that user ID
+#         user_id = self.kwargs.get('user_id')
+#         if user_id:
+#             return Address.objects.filter(user_id=user_id)
+#         # Otherwise, default to the authenticated user's addresses
+#         user = self.request.user
+#         return Address.objects.filter(user=user)
+
+#     def perform_create(self, serializer):
+#         # If user_id is provided in the URL, use that user ID to save the address
+#         user_id = self.kwargs.get('user_id')
+#         if user_id:
+#             serializer.save(user_id=user_id)
+#         else:
+#             serializer.save(user=self.request.user)
+
+
+# class AddressRetrieveUpdateAPIView(generics.RetrieveUpdateAPIView):
+#     serializer_class = AddressSerializer
+#     queryset = Address.objects.all()  # Set queryset to retrieve all addresses
+
+
+# class UserAddressRetrieveAPIView(generics.ListAPIView):
+#     serializer_class = AddressSerializer
+#     permission_classes = [IsAuthenticated]
+#     queryset = Address.objects.all()
+#     lookup_field = 'user_id'  # Specify the lookup field
+
+#     def get_queryset(self):
+#         user_id = self.kwargs.get('user_id')
+#         return Address.objects.filter(user_id=user_id)
+
+#     def put(self, request, *args, **kwargs):
+#         instance = self.get_object()
+#         serializer = self.get_serializer(instance, data=request.data, partial=True)
+#         serializer.is_valid(raise_exception=True)
+#         serializer.save()
+#         return Response(serializer.data)
+
+#     def patch(self, request, *args, **kwargs):
+#         return self.put(request, *args, **kwargs)

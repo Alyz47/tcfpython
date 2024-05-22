@@ -4,9 +4,9 @@
 /backend/*.pyc
 /backend/__pycache__/
 /backend/local_settings.py
-# /backend/db.sqlite3
-# /backend/db.sqlite3-journal
-/backend/media
+/backend/db.sqlite3
+/backend/db.sqlite3-journal
+/backend/images
 
 
 # If your build process includes running collectstatic, then you probably don't need or want to include staticfiles/
@@ -208,3 +208,4 @@ cython_debug/
 /frontend/yarn-debug.log*
 /frontend/yarn-error.log*
 .DS_Store
+backend/db.sqlite3

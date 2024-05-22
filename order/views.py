@@ -1,37 +1,45 @@
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
-from .models import Order
-from .serializers import OrderSerializer
-from rest_framework.response import Response
 from django.db.models import Q
+from rest_framework import generics, viewsets
+from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+
+from listing.models import Listing
+from .models import Order
+from .serializers import ReadOrderSerializer, WriteOrderSerializer
+from .permissions import IsOrderByBuyerSellerOrAdmin, IsOrderPending
 
 
-class OrderListCreateAPIView(generics.ListCreateAPIView):
-    serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated]
+class OrderViewSet(viewsets.ModelViewSet):
+    queryset = Order.objects.all()
+    permission_classes = [IsOrderByBuyerSellerOrAdmin]
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return WriteOrderSerializer
+        else:
+            return ReadOrderSerializer
 
     def get_queryset(self):
-        user_id = self.kwargs.get('user_id')
-        queryset = Order.objects.filter(Q(buyer=user_id) | Q(seller=user_id))
-        return queryset
+        res = super().get_queryset()
+        user = self.request.user
+        return res.filter(buyer=user)
 
-    def perform_create(self, serializer):
-        serializer.save(buyer=self.request.user)
+    def get_permissions(self):
+        if self.action in ("update", "partial_update"):
+            self.permission_classes += [IsOrderPending]
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+        return super().get_permissions()
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_sales_orders(request):
+    user = request.user
+
+    try:
+        sales_orders = Order.objects.filter(listing__seller=user)
+        serializer = ReadOrderSerializer(sales_orders, many=True)
         return Response(serializer.data)
-
-
-class OrderRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Order.objects.all()
-    serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated]
-
-    def perform_update(self, serializer):
-        order = serializer.instance
-        if order.status == Order.COMPLETED_STATE:
-            order.listing.is_sold = True
-            order.listing.save()
-        serializer.save()
+    except Exception as e:
+        raise Response({'error': str(e)}, status=500)

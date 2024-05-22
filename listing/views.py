@@ -111,8 +111,9 @@ def get_listing_details(request, listing_pk):
 def get_similar_listings(request, listing_pk):
     try:
         listing = get_object_or_404(Listing, id=listing_pk)
+        similar_listings = listing.get_related_listings(limit=6)
         similar_listings_serializd = ReadListingSerializer(
-            listing.get_related_listings(), many=True, context={'request': request})
+            similar_listings, many=True, context={'request': request})
     except Exception as e:
         raise e
     return Response(similar_listings_serializd.data)

@@ -21,8 +21,8 @@ class ProfileAdmin(admin.ModelAdmin):
 
 
 class AddressAdmin(admin.ModelAdmin):
-    list_display = ['user', 'country', 'city', 'street_address', 'postal_code', 'has_card', 'primary']
-    list_filter = ['country', 'city', 'has_card', 'primary']
+    list_display = ['id', 'user', 'country', 'city', 'street_address', 'postal_code']
+    list_filter = ['country', 'city']
     search_fields = ['user__username', 'city', 'street_address', 'postal_code']
 
 

@@ -6,6 +6,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODEL_PATH = os.path.join(BASE_DIR, 'ml_model', 'models', 'best.pt')
 
+
 def predict(image):
     # print("hello1")
     # use best.pt to get best results

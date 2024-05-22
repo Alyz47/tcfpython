@@ -161,17 +161,22 @@ class Listing(Extensions):
     def __str__(self):
         return str(self.pk)
 
-    def get_related_listings(self):
-        title_split = self.title.split(' ')
-        lookups = Q(title__icontains=title_split[0])
+    def get_related_listings(self, limit=None):
+            title_split = self.title.split(' ')
+            lookups = Q(title__icontains=title_split[0])
 
-        for i in title_split[1:]:
-            lookups |= Q(title__icontains=i)
+            for i in title_split[1:]:
+                lookups |= Q(title__icontains=i)
 
-        related_listings = Listing.objects.filter(
-            lookups).distinct().exclude(id=self.id)
-        print(f"Related Listings: {related_listings}")
-        return related_listings
+            related_listings = Listing.objects.filter(
+                lookups).distinct().exclude(id=self.id)
+            
+            # Limit the number of related listings if a limit is provided
+            if limit is not None:
+                related_listings = related_listings[:limit]
+
+            print(f"Related Listings: {related_listings}")
+            return related_listings
 
     def get_recommended_listings(self):
         listing_images = ListingImage.objects.filter(listing_id=self.id)

@@ -207,6 +207,9 @@ class WriteListingSerializer(serializers.ModelSerializer):
         instance.save()
 
         if listing_images_list:
+            # Clear existing images
+            instance.listing_image.all().delete()
+            
             for image in listing_images_list:
                 ListingImage.objects.create(listing=instance, image=image)
 
